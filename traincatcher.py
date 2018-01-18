@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jan 10 09:58:14 2018
+Train Catcher
 
-@author: Joe
+A simple script that if provided with a proper set of schedules, can be used to figure out the 
+next train you can catch.
 """
 
 import datetime
@@ -11,11 +12,7 @@ DAY_TYPES = ["weekday", "saturday", "holiday"]
 DAY_INT = {0:'holiday', 1: "weekday", 2: "weekday", 3: "weekday", 
            4: "weekday", 5: "weekday", 6: "saturday"}
 
-WEEKDAYS_SCHED = "weekdays.txt"
-SATURDAYS_SCHED = "saturdays.txt"
-HOLIDAYS_SCHED = "holidays.txt"
 
-ALL_SCHED = [WEEKDAYS_SCHED, SATURDAYS_SCHED, HOLIDAYS_SCHED]
 
 def simplifyTime(time):
     """
@@ -166,8 +163,11 @@ class Schedule():
 
 class TrainCatcher():
     """
+    !!Wiggle hasn't been implemented yet, for now this simply will tell tghe user the next catchable train
+    
     walkTime is the amount of time needed to get to the trainstation
     wiggle is the amount of extra time needed for catching the train to be safe
+    
     
     if the diff between the current time and the next train is > walkTime + wiggle, just return the next train
     if the diff is > walkTime, but < walkTime + wiggle, give an alert to leave immediately, plus list the next safe train

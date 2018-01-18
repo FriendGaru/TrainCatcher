@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jan 11 14:49:40 2018
-
-@author: Joe
+This script is for my use catching a train at Tennozu Asle
 """
 
 from traincatcher import *
+
+SCHED_FOLDER = ''
+
+WEEKDAYS_SCHED = SCHED_FOLDER + "weekdays.txt"
+SATURDAYS_SCHED = SCHED_FOLDER + "saturdays.txt"
+HOLIDAYS_SCHED = SCHED_FOLDER + "holidays.txt"
 
 tc = TrainCatcher(walkTime = 6)
 tc.setSchedule(0, HOLIDAYS_SCHED)
