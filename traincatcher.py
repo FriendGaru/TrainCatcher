@@ -8,9 +8,10 @@ next train you can catch.
 
 import datetime
 
-DAY_TYPES = ["weekday", "saturday", "holiday"]
-DAY_INT = {0:'holiday', 1: "weekday", 2: "weekday", 3: "weekday", 
-           4: "weekday", 5: "weekday", 6: "saturday"}
+SCHEDULE_TYPES = ["weekday", "saturday", "holiday"]
+DAY_INT = {6: "Sunday", 0: "Monday", 1: "Tuesday", 2: "Wednesday", 
+           3: "Thursday", 4: "Friday", 5: "Saturday"}
+
 
 
 
@@ -23,6 +24,28 @@ def simplifyTime(time):
         time = 60 * time[0] + time[1]
     assert type(time) == int
     return time
+
+def timeToString(timeTup):
+    """
+    Takes a tuple of (minutesFromMidnight, dayOfTheWeek) and returns a nice string like "Monday 12:05"
+    """
+    hour = timeTup[0] // 60
+    if hour < 10:
+        hour = "0" + str(hour)
+    else:
+        hour = str(hour)
+        
+    minute = timeTup[0] % 60
+    if minute < 10:
+        minute = "0" + str(minute)
+    else:
+        minute = str(minute)
+        
+    weekday = DAY_INT[timeTup[1]]
+        
+    out = "%s %s:%s" % (weekday, hour, minute)
+    return out
+
 
 class Departure():
     def __init__(self, hour, minute, dest):
@@ -46,7 +69,17 @@ class Departure():
         return self.dest
     
     def __str__(self):
-        return ("%d:%d %s" % (self.hour, self.minute, self.dest))
+        if self.hour < 10:
+            hour = '0' + str(self.hour)
+        else:
+            hour = str(self.hour)
+            
+        if self.minute < 10:
+            minute = '0' + str(self.minute)
+        else:
+            minute = str(self.minute)
+            
+        return ("%s:%s %s" % (hour, minute, self.dest))
     
 class Schedule():
     def __init__(self, departures = [], title = 'Schedule'):
@@ -101,6 +134,9 @@ class Schedule():
         
         Using a linear search right now, 'should' be a bisection search
         """
+        
+        """
+        #Old method using filtered schedule
         time = simplifyTime(time)
         
         if dests:
@@ -110,6 +146,16 @@ class Schedule():
             for departure in self.departures:
                 if departure.minFromMidnight() > time:
                     return departure
+            return None
+        """
+        
+        time = simplifyTime(time)
+        if dests == None:
+            dests = self.getDests()
+            
+        for departure in self.departures:
+            if departure.minFromMidnight() > time and departure.getDest() in dests:
+                return departure
             return None
     
     def niceSchedule(self):
@@ -214,12 +260,28 @@ class TrainCatcher():
             return "weekday"
     """
         
-    def getNextTrain(self, time = None, walkTime = 0, day = None, dests = None):
+    def getNextTrain(self, time, day, dests = None):
         """
-        Returns the next catchable departure
+        Returns the next catchable departure given a specified time
         
         Time can be given as either a tuple(hour,minute) or an int for minutes from midnight
-        If no time is specified, will use 
+
+        """
+        activeSched = self.schedules[day]
+
+        return activeSched.nextDep(time, dests)
+    
+    def setGoodDests(self, goodDests):
+        """
+        Not all departures are necessarily good trains to catch
+        This sets which destinations constitute good trains
+        Setting to None will mean all trains are good
+        """
+        self.goodDests = goodDests
+    
+    def getNextGood(self, time = None, day = None, walkTime = None, goodDests = None):
+        """
+        This returns the next good, catchable train
         """
         nowTup = None
         if time == None or day == None:
@@ -230,32 +292,110 @@ class TrainCatcher():
         else:
             time = simplifyTime(time)
             
-        time += walkTime 
-            
         if day == None:
             day = nowTup[1]
         
+        if walkTime == None:
+            walkTime = self.walkTime
+            
+        if goodDests == None:
+            goodDests = self.goodDests
+            
+        if walkTime:
+            time += walkTime
         
-        todaySchedule = self.schedules[day]
+        return self.getNextTrain(time = time, day = day, dests = goodDests)
+    
+    def checkDeparture(self, dep, time):
+        """
+        Takes a departure obj and checks it against the TC obj's walktime and wiggle
+        Returns one of the following:
+            'gone' - already left
+            'uncatchable' - hasn't departed yet, but not catchable within walk time
+            'maybe' - within walk time, but not wiggle
+            'good' - within both walk and wiggle time
+        """
+        depTime = dep.minFromMidnight()
+        
+        if time > depTime:
+            return 'gone'
+        elif time + self.walkTime + self.wiggle < depTime:
+            return 'good'
+        elif time + self.walkTime < depTime:
+            return 'maybe'
+        else:
+            return 'uncatchable'
+    
+    def getLookup(self, time = None, day = None):
+        """
+        Takes a time and returns a LookupResults obj which contains all needed info.
+        Uses only good destinations and the TrainCatcher obj's walkTime and wiggle
+        """
+        if time == None or day == None:
+            nowTup = TrainCatcher.getNowTime()
+        
+        if time:
+            time = simplifyTime(time)
+        else:
+            time = nowTup[0]
+            
+        if day == None:
+            day = nowTup[1]
+            
+        uncatchableTrains = []
+        maybeTrains = []
+        goodTrains = []
+        
+        activeSched = self.schedules[day]
+        
+        for dep in activeSched.departures:
+            depClass = self.checkDeparture(dep, time)
+            if depClass == 'good':
+                goodTrains.append(dep)
+            elif depClass == 'maybe':
+                maybeTrains.append(dep)
+            elif depClass == 'uncatchable':
+                uncatchableTrains.append(dep)
+                
+            if len(goodTrains) >= 2:
+                break
+        
+        lookup = LookupResults( lookupTime = (time,day), goodTrains = goodTrains, uncatchableTrains = uncatchableTrains, maybeTrains = maybeTrains )
+        
+        return lookup
+            
 
-        return todaySchedule.nextDep(time, dests)
     
-    def setGoodDests(self, goodDests):
-        """
-        Not all departures are necessarily good trains to catch
-        This sets which destinations constitute good trains
-        Setting to None will mean all trains are good
-        """
-        self.goodDests = goodDests
+class LookupResults():
+    """
+    This class encapsulates all of the potentially important output data from one lookup
     
-    def getNextGood(self):
-        """
-        This returns the next good, catchable train
-        """
-        return self.getNextTrain(walkTime = self.walkTime, dests = self.goodDests)
-
-    
-    
+    lookupTime - When the lookup was run, (hours-from-midnight, day-of-the-week)
+    uncatchableTrains - Trains that would be good, but are departing too soon to catch
+    maybeTrains - Trains that are catchable, but only if you leave very soon
+    goodTrains - The next certain good departure, and the following one for reference
+    """
+    def __init__(self, lookupTime, uncatchableTrains = None, maybeTrains = None, goodTrains = None):
+        self.lookupTime = lookupTime
+        self.uncatchableTrains = uncatchableTrains
+        self.maybeTrains = maybeTrains
+        self.goodTrains = goodTrains
+        
+    def __str__(self):
+        out = "Lookup Time: " + timeToString(self.lookupTime)
+        if self.uncatchableTrains:
+            out += "\nBad: "
+            for train in self.uncatchableTrains:
+                out += str(train) + " "
+        if self.maybeTrains:
+            out += "\nMaybe: "
+            for train in self.maybeTrains:
+                out += str(train) + " "
+        if self.goodTrains:
+            out += "\nGood: "
+            for train in self.goodTrains:
+                out += str(train) + " "
+        return out
         
         
         

@@ -12,11 +12,12 @@ WEEKDAYS_SCHED = SCHED_FOLDER + "weekdays.txt"
 SATURDAYS_SCHED = SCHED_FOLDER + "saturdays.txt"
 HOLIDAYS_SCHED = SCHED_FOLDER + "holidays.txt"
 
-tc = TrainCatcher(walkTime = 6)
-tc.setSchedule(0, HOLIDAYS_SCHED)
-tc.setSchedule([1,2,3,4,5], WEEKDAYS_SCHED)
-tc.setSchedule(6, SATURDAYS_SCHED)
+tc = TrainCatcher(walkTime = 6, wiggle = 3)
+tc.setSchedule(6, HOLIDAYS_SCHED)
+tc.setSchedule([0,1,2,3,4], WEEKDAYS_SCHED)
+tc.setSchedule(5, SATURDAYS_SCHED)
 tc.setGoodDests(['浦', '川', '宮', '赤', '池'])
 
-print(tc.getNextGood())
+lookup = tc.getLookup()
+print(lookup)
 input()
