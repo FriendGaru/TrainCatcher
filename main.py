@@ -20,4 +20,4 @@ tc.setGoodDests(['浦', '川', '宮', '赤', '池'])
 
 lookup = tc.getLookup()
 print(lookup)
-input()
+#input()

@@ -349,6 +349,8 @@ class TrainCatcher():
         activeSched = self.schedules[day]
         
         for dep in activeSched.departures:
+            if dep.getDest() not in self.goodDests:
+                continue
             depClass = self.checkDeparture(dep, time)
             if depClass == 'good':
                 goodTrains.append(dep)
